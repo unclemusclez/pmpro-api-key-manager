@@ -176,5 +176,5 @@ This plugin is licensed under the [GPLv3](https://www.gnu.org/licenses/gpl-3.0.h
 
 ## Support
 
-For issues or questions, open a ticket on the [GitHub Issues page](https://github.com/unclemusclez/pmpro-api-key-manager/issues).
-Visit the Water Pistol Discord for community Assistianance [Water Pistol Discord](https://discord.waterpistol.co)
+For issues or questions, open a ticket on the [GitHub Issues page](https://github.com/unclemusclez/pmpro-api-key-manager/issues).  
+Visit the Water Pistol Discord for Community Assistance [Water Pistol Discord](https://discord.waterpistol.co).
