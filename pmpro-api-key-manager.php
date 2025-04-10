@@ -11,10 +11,6 @@
  * License: GPL v3 or later
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
 */
-// Basic activation test
-// register_activation_hook(__FILE__, function () {
-//     error_log("PMP API Key Manager activated");
-// });
 
 // Activation: Create keys table
 register_activation_hook(__FILE__, function () {
@@ -34,9 +30,11 @@ register_activation_hook(__FILE__, function () {
     dbDelta($sql);
 });
 
+// Admin Settings Page
 add_action('admin_menu', function () {
-    add_options_page('API Key Manager', 'API Key Manager', 'manage_options', 'pmpro-api-keys', function () {
-        if (isset($_POST['save_configs'])) {
+    add_options_page('API Key Manager', 'API Key Manager', 'manage_options', 'pm zugpro-api-keys', function () {
+        // Save settings if form submitted
+        if (isset($_POST['save_configs']) && check_admin_referer('pmpro_api_keys_save', 'pmpro_api_keys_nonce')) {
             $configs = [];
             foreach ($_POST['apps'] as $app_id => $app) {
                 $configs[$app_id] = [
@@ -61,14 +59,45 @@ add_action('admin_menu', function () {
                 }
             }
             update_option('pmpro_api_configs', $configs);
+            echo '<div class="updated"><p>Settings saved.</p></div>';
         }
-        // Render form with inputs for app URL, levels, limits (hour/day), and flags
+
+        // Render the form
+        $configs = get_option('pmpro_api_configs', []);
+        $levels = function_exists('pmpro_getAllLevels') ? pmpro_getAllLevels() : [];
+        ?>
+        <div class="wrap">
+            <h1>API Key Manager Settings</h1>
+            <form method="post" action="">
+                <?php wp_nonce_field('pmpro_api_keys_save', 'pmpro_api_keys_nonce'); ?>
+                <h2>FastAPI Applications</h2>
+                <?php foreach ($configs as $app_id => $app_data): ?>
+                    <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
+                        <p><strong>App ID:</strong> <?php echo esc_html($app_id); ?></p>
+                        <label>FastAPI URL: <input type="text" name="apps[<?php echo esc_attr($app_id); ?>][url]" value="<?php echo esc_attr($app_data['url']); ?>" style="width: 300px;"></label>
+                        <h3>Membership Levels</h3>
+                        <?php foreach ($levels as $level): ?>
+                            <div style="margin-left: 20px;">
+                                <p><strong><?php echo esc_html($level->name); ?> (ID: <?php echo $level->id; ?>)</strong></p>
+                                <label>Hourly Limit (endpoint1): <input type="number" name="apps[<?php echo esc_attr($app_id); ?>][levels][<?php echo $level->id; ?>][limits][endpoint1][hour]" value="<?php echo esc_attr($app_data['levels'][$level->id]['permissions']['limits']['endpoint1']['hour'] ?? ''); ?>"></label><br>
+                                <label>Daily Limit (endpoint1): <input type="number" name="apps[<?php echo esc_attr($app_id); ?>][levels][<?php echo $level->id; ?>][limits][endpoint1][day]" value="<?php echo esc_attr($app_data['levels'][$level->id]['permissions']['limits']['endpoint1']['day'] ?? ''); ?>"></label><br>
+                                <label>Feature Flag (feature1): <input type="checkbox" name="apps[<?php echo esc_attr($app_id); ?>][levels][<?php echo $level->id; ?>][flags][feature1]" <?php checked($app_data['levels'][$level->id]['permissions']['flags']['feature1'] ?? false); ?> value="1"></label>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endforeach; ?>
+                <h3>Add New App</h3>
+                <label>App ID: <input type="text" name="apps[new_app][url]" placeholder="e.g., https://api.example.com" style="width: 300px;"></label>
+                <p>(Save to configure levels for the new app.)</p>
+                <p><input type="submit" name="save_configs" class="button-primary" value="Save Settings"></p>
+            </form>
+        </div>
+        <?php
     });
 });
 
-// Key Generation: Updated to send detailed permissions
+// Key Generation
 add_action('pmpro_after_change_membership_level', function ($level_id, $user_id) {
-    error_log("Membership level changed: User $user_id, Level $level_id");
     global $wpdb;
     $configs = get_option('pmpro_api_configs', []);
     $level = pmpro_getLevel($level_id);
@@ -91,7 +120,6 @@ add_action('pmpro_after_change_membership_level', function ($level_id, $user_id)
                     wp_mail(get_userdata($user_id)->user_email, "Your {$app_id} API Key", "Key: {$body['api_key']}");
                 }
             } else {
-                // Update existing key
                 $response = wp_remote_put("{$config['url']}/keys/update", [
                     'body' => json_encode(['key_id' => $existing, 'tier' => $level->name, 'permissions' => $permissions]),
                     'headers' => ['Content-Type' => 'application/json']
@@ -113,7 +141,7 @@ add_shortcode('pmpro_api_keys', function () {
     $user_id = get_current_user_id();
     $keys = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}pmpro_api_keys WHERE user_id = $user_id AND active = 1");
     if (empty($keys)) {
-        return '<p>No API keys found for user ' . $user_id . '. Table: ' . $wpdb->prefix . 'pmpro_api_keys</p>';
+        return '<p>No API keys found. Subscribe to a membership level to generate one.</p>';
     }
     $output = '<ul>';
     foreach ($keys as $key) {
