@@ -1,8 +1,15 @@
 <?php
-/*
-Plugin Name: PMP API Key Manager
-Description: Manage API keys for FastAPI apps with Paid Memberships Pro
-Version: 1.0
+/**
+ * Plugin Name: Paid Memberships Pro - API Key Manager
+ * Description: Manage API keys for FastAPI apps with Paid Memberships Pro
+ * Version: 0.0.1
+ * Plugin URI: https://github.com/unclemusclez/pmpro-api-key-manager
+ * Author: Devin J. Dawson
+ * Author URI: https://waterpistol.co
+ * Text Domain: pmpro-mosparo-integration
+ * Domain Path: /languages
+ * License: GPL v3 or later
+ * License URI: http://www.gnu.org/licenses/gpl-3.0.html
 */
 
 // Activation: Create keys table
